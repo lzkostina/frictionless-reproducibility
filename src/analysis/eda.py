@@ -1,27 +1,86 @@
-# Function to return a list of columns with missing values in a DataFrame
-def list_columns_with_missing_values(df):
-    return df.columns[df.isnull().any()].tolist()  # List of columns with any missing values
+import pandas as pd
+from typing import List, Tuple
 
 
-# Function to count the number of columns with missing values in a DataFrame
-def count_columns_with_missing_values(df):
-    return (df.isnull().sum() > 0).sum()  # Count columns with any missing values
+def list_columns_with_missing_values(df: pd.DataFrame) -> List[str]:
+    """
+    Identify columns in a DataFrame that contain missing values.
+
+    Parameters:
+    df : pd.DataFrame
+        Input dataset.
+
+    Returns:
+    list of str
+        Names of columns with at least one missing value.
+    """
+    return df.columns[df.isnull().any()].tolist()
 
 
-# Function to calculate the percentage of missing values for each column in a DataFrame
-def percentage_missing_values(df, columns):
-    missing_percent = df[columns].isnull().mean() * 100  # Percentage of missing values for specified columns
-    return missing_percent
+def count_columns_with_missing_values(df: pd.DataFrame) -> int:
+    """
+    Count the number of columns in a DataFrame with missing values.
+
+    Parameters:
+    df : pd.DataFrame
+        Input dataset.
+
+    Returns:
+    int
+        Number of columns containing at least one missing value.
+    """
+    return (df.isnull().sum() > 0).sum()
 
 
-# Function to divide features into numerical and categorical
-def divide_features(df):
-    numerical_features = df.select_dtypes(include=['number']).columns.tolist()  # Select numerical columns
-    assert isinstance(df.select_dtypes(include=['object', 'category']).columns, object)
-    categorical_features = df.select_dtypes(include=['object', 'category']).columns.tolist()  # Select categorical columns (strings or categories)
+def percentage_missing_values(df: pd.DataFrame, columns: List[str]) -> pd.Series:
+    """
+    Calculate the percentage of missing values for specified columns.
 
+    Parameters:
+    df : pd.DataFrame
+        Input dataset.
+    columns : list of str
+        List of column names for which to calculate missing percentages.
+
+    Returns:
+    pd.Series
+        Index: column names, Values: percentage of missing values.
+    """
+    return df[columns].isnull().mean() * 100
+
+
+def divide_features(df: pd.DataFrame) -> Tuple[List[str], List[str]]:
+    """
+    Divide dataset features into numerical and categorical.
+
+    Parameters:
+    df : pd.DataFrame
+        Input dataset.
+
+    Returns:
+    tuple of list
+        - numerical_features: list of numerical column names.
+        - categorical_features: list of categorical column names.
+    """
+    numerical_features = df.select_dtypes(include=["number"]).columns.tolist()
+    categorical_features = df.select_dtypes(
+        include=["object", "category"]
+    ).columns.tolist()
     return numerical_features, categorical_features
 
-# Function to count unique values for categorical features
-def categorical_summary_stats(df, categorical_features):
+
+def categorical_summary_stats(df: pd.DataFrame, categorical_features: List[str]) -> pd.Series:
+    """
+    Calculate the number of unique values for each categorical feature.
+
+    Parameters:
+    df : pd.DataFrame
+        Input dataset.
+    categorical_features : list of str
+        List of categorical feature names.
+    Returns:
+
+    pd.Series
+        Index: categorical feature names, Values: number of unique values.
+    """
     return df[categorical_features].nunique()
