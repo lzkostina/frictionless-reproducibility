@@ -1,13 +1,37 @@
 import pandas as pd
 from pathlib import Path
 
-def handle_missing_values(df1: pd.DataFrame, df2: pd.DataFrame) -> tuple:
-    """Drop rows with missing values (except rel_family_id)."""
-    cols_to_check = [col for col in df1.columns if col != 'rel_family_id']
-    return df1.dropna(subset=cols_to_check), df2.dropna(subset=cols_to_check)
+def handle_missing_values(df_baseline: pd.DataFrame, df_followup: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Since we want to keep only subjects with no missing values, we drop rows
+    with missing values. The function checks all the columns except "rel_family_id"
+    column since df_followup has no values in this column.
+
+    Parameters:
+        df_baseline: pd.DataFrame
+        Baseline dataframe.
+        df_followup: pd.DataFrame
+        Followup dataframe.
+    Returns:
+        tuple of pd.DataFrames
+        Filtered dataframes.
+    """
+    cols_to_check = [col for col in df_baseline.columns if col != 'rel_family_id']
+    return df_baseline.dropna(subset=cols_to_check), df_followup.dropna(subset=cols_to_check)
+
 
 def merge_family_ids(df_baseline: pd.DataFrame, df_followup: pd.DataFrame) -> pd.DataFrame:
-    """Fill missing family IDs in follow-up data using baseline data."""
+    """
+    Fill missing family IDs in follow-up data using baseline data.
+    Parameters:
+        df_baseline: pd.DataFrame
+        Baseline dataframe.
+        df_followup: pd.DataFrame
+        Followup dataframe.
+    Returns:
+        pd.DataFrame
+        Followup dataframe with "rel_family_id" column.
+    """
     df_followup = df_followup.merge(
         df_baseline[['Subject', 'rel_family_id']],
         on='Subject',
@@ -17,35 +41,45 @@ def merge_family_ids(df_baseline: pd.DataFrame, df_followup: pd.DataFrame) -> pd
     df_followup['rel_family_id'] = df_followup['rel_family_id'].fillna(df_followup['rel_family_id_from_baseline'])
     return df_followup.drop(columns=['rel_family_id_from_baseline'])
 
-def enforce_common_subjects(df1: pd.DataFrame, df2: pd.DataFrame) -> tuple:
-    """Enforce common subjects in both data frames."""
-    # Identify unique values in each dataset
-    subjects_0 = set(df1['Subject'].unique())
-    subjects_1 = set(df2['Subject'].unique())
 
-    # Find the common values between both datasets
-    common_values = subjects_0.intersection(subjects_1)
+def enforce_common_subjects(df_baseline: pd.DataFrame, df_followup: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Enforce common subjects in both data frames.
 
-    #  Filter both datasets to keep only rows with common values
-    df1 = df1[df1['Subject'].isin(common_values)]
-    df2 = df2[df2['Subject'].isin(common_values)]
+    Parameters:
+        df_baseline: pd.DataFrame
+        Baseline dataframe.
+        df_followup: pd.DataFrame
+        Followup dataframe.
+        Both dataframes must have "Subject" column.
 
-    return df1, df2
+    Returns:
+        tuple(pd.DataFrame, pd.DataFrame)
+        Subset of baseline dataframe and subset of followup dataframe with common subjects.
+    """
 
-def drop_siblings(df1: pd.DataFrame, df2: pd.DataFrame) -> tuple:
-    """Drop siblings in both data frames."""
+    common_subjects = set(df_baseline["Subject"]).intersection(df_followup["Subject"])
+    return (
+        df_baseline[df_baseline["Subject"].isin(common_subjects)],
+        df_followup[df_followup["Subject"].isin(common_subjects)],
+    )
+
+def drop_siblings(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Drop siblings in both data frames.
+
+    Parameters:
+        df: pd.DataFrame
+        Input dataframe.
+        Must have "rel_family_id" column.
+
+    Returns:
+        pd.DataFrame
+        Filtered dataframe with only one subject from a family.
+    """
+
     # Drop duplicate rows based on 'rel_family_id' while keeping the first occurrence
-    df1 = df1.drop_duplicates(subset='rel_family_id', keep='first')
-    df2 = df2.drop_duplicates(subset='rel_family_id', keep='first')
-    return df1, df2
-
-def convert_sex(df1: pd.DataFrame, df2: pd.DataFrame) -> tuple:
-    df1['sex'] = df1['demo_sex_v2'].map({1.0: 'male', 2.0: 'female'})
-    df2['sex'] = df2['demo_sex_v2'].map({1.0: 'male', 2.0: 'female'})
-
-    df1 = df1.drop(columns=['demo_sex_v2'], axis=0, inplace=False)
-    df2 = df2.drop(columns=['demo_sex_v2'], axis=0, inplace=False)
-    return df1, df2
+    return df.drop_duplicates(subset='rel_family_id', keep='first')
 
 def save_processed_data(
         df_baseline: pd.DataFrame,
