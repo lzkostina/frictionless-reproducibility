@@ -103,3 +103,62 @@ def save_processed_data(
     df_baseline.to_csv(f"{output_dir}/{prefix}_0.csv", index=False)
     df_followup.to_csv(f"{output_dir}/{prefix}_1.csv", index=False)
     print(f"Data saved to {output_dir}{prefix}_0.csv and {output_dir}{prefix}_1.csv")
+
+
+def link_with_g_scores(
+    df_baseline: pd.DataFrame,
+    df_followup: pd.DataFrame,
+    g_factor: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Link baseline and follow-up datasets with g-scores, keeping only
+    subjects with valid g-scores at both timepoints.
+
+    Parameters
+    ----------
+    df_baseline : pd.DataFrame
+        Baseline dataset with 'src_subject_id' column.
+    df_followup : pd.DataFrame
+        Follow-up dataset with 'src_subject_id' column.
+    g_factor : pd.DataFrame
+        Dataset containing g-scores. Must include:
+        - 'subjectkey' (renamed to 'src_subject_id')
+        - 'G_lavaan.baseline'
+        - 'G_lavaan.2Year'
+        - 'site_id_l.baseline'
+        - 'site_id_l.2Year'
+
+    Returns
+    -------
+    tuple of pd.DataFrame
+        (baseline_merged, followup_merged), each merged with g-scores
+        and restricted to subjects who have valid scores at both
+        baseline and follow-up.
+    """
+    # Standardize subject ID
+    g_factor = g_factor.rename(columns={"subjectkey": "src_subject_id"})
+
+    # Keep only subjects with both baseline and follow-up g-scores
+    filtered_g = g_factor[
+        g_factor["G_lavaan.baseline"].notna()
+        & g_factor["G_lavaan.2Year"].notna()
+    ]
+
+    # Merge baseline
+    merged_baseline = pd.merge(
+        filtered_g,
+        df_baseline,
+        on="src_subject_id",
+        how="inner"
+    ).drop(columns=["G_lavaan.2Year", "site_id_l.2Year", "site_id_l.baseline"])
+
+    # Merge follow-up
+    merged_followup = pd.merge(
+        filtered_g,
+        df_followup,
+        on="src_subject_id",
+        how="inner"
+    ).drop(columns=["G_lavaan.baseline", "site_id_l.baseline", "site_id_l.2Year"])
+
+    return merged_baseline, merged_followup
+
