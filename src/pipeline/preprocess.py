@@ -58,6 +58,10 @@ def preprocess_features(data: pd.DataFrame, g_score: pd.DataFrame, eventname: st
     # Merge demographics with g_score
     result_df_fg = pd.merge(g_factor, result_df, on="src_subject_id")
 
+    # Drop duplicate column
+    if "site_id_l" in result_df_fg.columns:
+        result_df_fg = result_df_fg.drop(columns=["site_id_l"])
+
     # Drop columns that are *always* irrelevant
     drop_cols = ["src_subject_id", "Session", "rel_family_id"]
     result_df_fg = result_df_fg.drop(columns=[c for c in drop_cols if c in result_df_fg.columns])
