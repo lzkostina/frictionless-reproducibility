@@ -71,23 +71,35 @@ def preprocess_features(data: pd.DataFrame, g_score: pd.DataFrame, eventname: st
     return result_df_fg
 
 
-def print_data_summary(data: pd.DataFrame) -> None:
-    print(f"Number of subjects: {len(data)}")
-    print(f"Interview age mean: {data['interview_age'].mean()/12.:2f}")
-    print(f"Interview age std: {data['interview_age'].std()/12:2f}")
-    counts_sex = data['demo_sex_v2'].value_counts()
-    for sex, n in counts_sex.items():
-        print(f"{sex}: {n}")
-        print(f"Percentage {sex}: {n/data.shape[0]*100:.2f}%")
-    counts_race = data['race.4level'].value_counts()
-    for race, n in counts_race.items():
-        print(f"{race}: {n}")
-        print(f"Percentage {race}: {n/data.shape[0]*100:.2f}%")
-    counts_hispanic = data['hisp'].value_counts()
-    for hispanic, n in counts_hispanic.items():
-        print(f"{hispanic}: {n}")
-        print(f"Percentage {hispanic}: {n/data.shape[0]*100:.2f}%")
-    counts_income = data['income_group'].value_counts()
-    for income, n in counts_income.items():
-        print(f"{income}: {n}")
-        print(f"Percentage {income}: {n/data.shape[0]*100:.2f}%")
+def print_data_summary(df: pd.DataFrame) -> None:
+    """
+    Print summary statistics for key demographic features.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input dataset. Must contain:
+        - 'age' (numeric, months)
+        - 'sex'
+        - 'race.4level'
+        - 'hisp'
+        - 'income_group'
+    """
+    n_subjects = len(df)
+    print(f"Number of subjects: {n_subjects}")
+
+    # Age (convert months → years)
+    if "age" in df.columns:
+        print(f"Age mean: {df['age'].mean() / 12:.2f} years")
+        print(f"Age std: {df['age'].std() / 12:.2f} years")
+
+    # Categorical summaries
+    categorical_cols = ["sex", "race.4level", "hisp", "income_group"]
+    for col in categorical_cols:
+        if col in df.columns:
+            counts = df[col].value_counts(dropna=False)
+            print(f"\n{col}:")
+            for value, count in counts.items():
+                perc = count / n_subjects * 100
+                print(f"  {value}: {count} ({perc:.2f}%)")
+
