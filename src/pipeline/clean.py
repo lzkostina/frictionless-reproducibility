@@ -1,6 +1,7 @@
 import pandas as pd
 from pathlib import Path
 
+
 def handle_missing_values(df_baseline: pd.DataFrame, df_followup: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Since we want to keep only subjects with no missing values, we drop rows
@@ -81,28 +82,37 @@ def drop_siblings(df: pd.DataFrame) -> pd.DataFrame:
     # Drop duplicate rows based on 'rel_family_id' while keeping the first occurrence
     return df.drop_duplicates(subset='rel_family_id', keep='first')
 
-def save_processed_data(
-        df_baseline: pd.DataFrame,
-        df_followup: pd.DataFrame,
-        output_dir: str = "../data/processed/",
-        prefix: str = "features"
-) -> None:
-    """
-    Save baseline and follow-up DataFrames to CSV files.
 
-    Args:
-        df_baseline: Baseline timepoint data.
-        df_followup: Follow-up timepoint data.
-        output_dir: Directory to save files (default: '../data/processed/').
-        prefix: Filename prefix (default: 'features' -> outputs 'features_0.csv').
+def save_aligned_features(df_baseline_A, df_followup_A, df_baseline_B, df_followup_B,
+                          output_dir: str = "../data/processed/"):
     """
-    # Create output directory if it doesn't exist
+    Save processed feature datasets (Version A and B) for baseline and follow-up.
+    Ensures canonical schema and consistent filenames.
+    """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    # Save files
-    df_baseline.to_csv(f"{output_dir}/{prefix}_0.csv", index=False)
-    df_followup.to_csv(f"{output_dir}/{prefix}_1.csv", index=False)
-    print(f"Data saved to {output_dir}{prefix}_0.csv and {output_dir}{prefix}_1.csv")
+    canonical_cols = [
+        "g_lavaan", "site_id_l", "age", "Subject", "meanFD", "race.4level",
+        "hisp", "sex", "EdYearsHighest", "IncCombinedMidpoint",
+        "Income2Needs", "Married", "income_group"
+    ]
+
+    datasets = {
+        "features_A_baseline.csv": df_baseline_A,
+        "features_A_followup.csv": df_followup_A,
+        "features_B_baseline.csv": df_baseline_B,
+        "features_B_followup.csv": df_followup_B,
+    }
+
+    for fname, df in datasets.items():
+        df = df.copy()
+        for col in canonical_cols:
+            if col not in df.columns:
+                df[col] = pd.NA
+        df = df[canonical_cols]
+        df.to_csv(f"{output_dir}/{fname}", index=False)
+        print(f"Saved {fname} with {df.shape[0]} subjects and {df.shape[1]} features")
+
 
 
 def link_with_g_scores(
