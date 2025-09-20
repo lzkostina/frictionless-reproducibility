@@ -186,7 +186,7 @@ from src.pipeline.connectomes import load_connectomes, align_subjects
 def merge_features_and_connectomes(
     df_features: pd.DataFrame,
     visit: str,
-    directory: str = "../connectomes/connectomes",
+    directory: str = "../data/connectomes",
     expected_shape: Tuple[int, int] = (418, 418),
     subject_col: str = "Subject",
     verbose: bool = True,
