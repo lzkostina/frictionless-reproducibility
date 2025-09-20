@@ -101,3 +101,33 @@ def extract_ses_features(df: pd.DataFrame) -> pd.DataFrame:
 
     return ses_features
 
+def combine_data(df1: pd.DataFrame, df2: pd.DataFrame, check_subjects: bool = True) -> pd.DataFrame:
+    """
+    Combine two feature dataframes side by side, dropping duplicate columns.
+
+    Parameters
+    ----------
+    df1 : pd.DataFrame
+        First dataframe.
+    df2 : pd.DataFrame
+        Second dataframe.
+    check_subjects : bool, default True
+        If True, checks that the "Subject" column is identical in both.
+
+    Returns
+    -------
+    combined : pd.DataFrame
+        Combined dataframe with unique columns only.
+    """
+    if check_subjects and "Subject" in df1.columns and "Subject" in df2.columns:
+        if not df1["Subject"].equals(df2["Subject"]):
+            raise ValueError("Subject columns do not match between df1 and df2.")
+
+    combined = pd.concat([df1, df2], axis=1)
+    duplicates = combined.columns[combined.columns.duplicated()].tolist()
+    if duplicates:
+        print(f"Dropping duplicate columns: {duplicates}")
+    combined = combined.loc[:, ~combined.columns.duplicated()]
+
+    return combined
+
