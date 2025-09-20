@@ -57,3 +57,47 @@ def extract_article_features(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]
         features = features.drop(columns=["hisp"])
 
     return features, y
+
+
+def extract_ses_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Extract socioeconomic status (SES) features from the dataset.
+
+    Steps:
+      - Drop unrelated columns (e.g., cognitive scores, demographics).
+      - Encode binary categorical features (married status).
+      - Encode ordinal categorical features (income group).
+      - Return only SES-related features.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input dataframe with columns including "Married" and "income_group".
+
+    Returns
+    -------
+    ses_features : pd.DataFrame
+        SES features with encoded columns:
+          - married_encoded: 1 = Currently Married, 0 = Not Currently Married
+          - income_encoded: 0 = low, 1 = medium, 2 = high
+    """
+
+    drop_cols = ['g_lavaan', 'meanFD', 'age', 'sex', 'hisp', 'race.4level']
+    ses_features = df.drop(columns=[c for c in drop_cols if c in df.columns])
+
+    # Encode marital status
+    if "Married" in ses_features.columns:
+        ses_features['married_encoded'] = ses_features['Married'].map({
+            'Currently Married': 1,
+            'Not Currently Married': 0
+        })
+        ses_features = ses_features.drop(columns=["Married"])
+
+    # Encode income group
+    if "income_group" in ses_features.columns:
+        income_mapping = {'low': 0, 'medium': 1, 'high': 2}
+        ses_features['income_encoded'] = ses_features['income_group'].map(income_mapping)
+        ses_features = ses_features.drop(columns=["income_group"])
+
+    return ses_features
+
