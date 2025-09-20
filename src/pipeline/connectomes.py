@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+
+from src.utils.matrix_io import read_file_to_matrix, convert_matrix_to_array
+from src.pipeline.connectomes import load_connectomes, align_subjects
 from typing import Callable, List, Tuple, Optional
 
 from src.utils.matrix_io import read_file_to_matrix, convert_matrix_to_array
@@ -175,18 +178,10 @@ def load_connectomes(
     return flattened, subjects
 
 
-import numpy as np
-import pandas as pd
-from typing import Tuple
-
-from src.utils.matrix_io import read_file_to_matrix, convert_matrix_to_array
-from src.pipeline.connectomes import load_connectomes, align_subjects
-
-
 def merge_features_and_connectomes(
     df_features: pd.DataFrame,
     visit: str,
-    directory: str = "../data/connectomes",
+    directory: str = "/Users/kostina/my-project~607/data/connectomes",
     expected_shape: Tuple[int, int] = (418, 418),
     subject_col: str = "Subject",
     verbose: bool = True,
@@ -200,7 +195,7 @@ def merge_features_and_connectomes(
         Features dataframe containing subject IDs.
     visit : str
         Visit identifier (e.g., "baseline_year_1_arm_1").
-    directory : str, default="../connectomes/connectomes"
+    directory : str, default="data/connectomes"
         Directory where connectome files are stored.
     expected_shape : tuple of int, default (418, 418)
         Expected shape of each connectome matrix.
@@ -244,3 +239,37 @@ def merge_features_and_connectomes(
     aligned_subjects = df_features_aligned[subject_col].tolist()
 
     return df_features_aligned, flattened_aligned, aligned_subjects
+
+
+def enforce_same_subjects(features_baseline, conn_baseline, subs_baseline,
+                          features_followup, conn_followup, subs_followup):
+    """
+    Keep only subjects present in both baseline and followup datasets.
+    Aligns features and connectomes accordingly.
+    """
+    baseline_set = set(subs_baseline)
+    followup_set = set(subs_followup)
+    common_subjects = baseline_set & followup_set
+
+    # Filter indices for common subjects
+    baseline_idx = [i for i, s in enumerate(subs_baseline) if s in common_subjects]
+    followup_idx = [i for i, s in enumerate(subs_followup) if s in common_subjects]
+
+    # Align features
+    features_baseline_aligned = features_baseline.iloc[baseline_idx].reset_index(drop=True)
+    features_followup_aligned = features_followup.iloc[followup_idx].reset_index(drop=True)
+
+    # Align connectomes
+    conn_baseline_aligned = conn_baseline[baseline_idx, :]
+    conn_followup_aligned = conn_followup[followup_idx, :]
+
+    # Align subject lists
+    subs_baseline_aligned = [subs_baseline[i] for i in baseline_idx]
+    subs_followup_aligned = [subs_followup[i] for i in followup_idx]
+
+    assert subs_baseline_aligned == subs_followup_aligned, "Subjects not properly aligned!"
+
+    return (features_baseline_aligned, conn_baseline_aligned,
+            features_followup_aligned, conn_followup_aligned,
+            subs_baseline_aligned)
+
