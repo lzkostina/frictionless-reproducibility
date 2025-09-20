@@ -173,3 +173,74 @@ def load_connectomes(
         print(f"Flattened shape: {flattened.shape}  (n_subjects x n_edges)")
 
     return flattened, subjects
+
+
+import numpy as np
+import pandas as pd
+from typing import Tuple
+
+from src.utils.matrix_io import read_file_to_matrix, convert_matrix_to_array
+from src.pipeline.connectomes import load_connectomes, align_subjects
+
+
+def merge_features_and_connectomes(
+    df_features: pd.DataFrame,
+    visit: str,
+    directory: str = "../connectomes/connectomes",
+    expected_shape: Tuple[int, int] = (418, 418),
+    subject_col: str = "Subject",
+    verbose: bool = True,
+) -> Tuple[pd.DataFrame, np.ndarray, list]:
+    """
+    Merge a features dataframe with connectomes, keeping only overlapping subjects.
+
+    Parameters
+    ----------
+    df_features : pd.DataFrame
+        Features dataframe containing subject IDs.
+    visit : str
+        Visit identifier (e.g., "baseline_year_1_arm_1").
+    directory : str, default="../connectomes/connectomes"
+        Directory where connectome files are stored.
+    expected_shape : tuple of int, default (418, 418)
+        Expected shape of each connectome matrix.
+    subject_col : str, default="Subject"
+        Column containing subject IDs.
+    verbose : bool, default=True
+        If True, prints progress.
+
+    Returns
+    -------
+    df_features_aligned : pd.DataFrame
+        Features dataframe aligned with connectomes.
+    flattened_aligned : np.ndarray
+        Flattened connectomes aligned with features (subjects x edges).
+    subjects : list
+        List of aligned subject IDs.
+    """
+    # Load flattened connectomes + subjects
+    flattened, subjects = load_connectomes(
+        df=df_features,
+        visit=visit,
+        directory=directory,
+        expected_shape=expected_shape,
+        subject_col=subject_col,
+        reader=read_file_to_matrix,
+        converter=convert_matrix_to_array,
+        verbose=verbose,
+    )
+
+    # Build connectome dataframe
+    df_connectomes = pd.DataFrame({subject_col: subjects})
+    df_connectomes["connectome"] = list(flattened)
+
+    # Align both
+    df_features_aligned, df_connectomes_aligned = align_subjects(
+        df_features, df_connectomes, subject_col=subject_col, verbose=verbose
+    )
+
+    # Extract aligned flattened matrices
+    flattened_aligned = np.vstack(df_connectomes_aligned["connectome"].values)
+    aligned_subjects = df_features_aligned[subject_col].tolist()
+
+    return df_features_aligned, flattened_aligned, aligned_subjects
