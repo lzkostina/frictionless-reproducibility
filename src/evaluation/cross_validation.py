@@ -99,6 +99,20 @@ def run_cross_validation(X_features, y, use_network=False, X_network=None, num_p
     results = []
     trained_models = []
 
+    if use_network:
+        if X_network is None:
+            raise ValueError("X_network must be provided when use_network=True")
+
+        # Build subject → site_id mapping once
+        subject_site_map = X_features[['Subject', 'site_id_l']].set_index('Subject')['site_id_l'].to_dict()
+
+        # Add site_id_l column once
+        X_network = X_network.copy()
+        X_network['site_id_l'] = X_network['Subject'].map(subject_site_map)
+
+        # Fill missing values once
+        X_network.fillna(0, inplace=True)
+
     for train_idx, test_idx in tqdm(logo.split(X_features, y, groups=groups), total=len(np.unique(groups)),
                                     desc="Cross-validation progress"):
         test_site = X_features.iloc[test_idx]['site_id_l'].iloc[0]
@@ -109,13 +123,6 @@ def run_cross_validation(X_features, y, use_network=False, X_network=None, num_p
         y_test = y.iloc[test_idx]
 
         if use_network:
-            if X_network is None:
-                raise ValueError("X_network must be provided when use_network=True")
-
-            subject_site_map = X_features[['Subject', 'site_id_l']].set_index('Subject')['site_id_l'].to_dict()
-            X_network['site_id_l'] = X_network['Subject'].map(subject_site_map)
-            X_network.fillna(0, inplace=True)
-
             train_subjects = X_features.iloc[train_idx]['Subject'].unique()
             test_subjects = X_features.iloc[test_idx]['Subject'].unique()
 
