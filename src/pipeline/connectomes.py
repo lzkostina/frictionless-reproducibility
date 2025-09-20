@@ -61,3 +61,54 @@ def align_subjects(
     df2_aligned = df2_aligned.sort_values(by=subject_col).reset_index(drop=True)
 
     return df1_aligned, df2_aligned
+
+
+def load_connectomes(df, visit,
+                     directory="../connectomes/connectomes", expected_shape=(418, 418)):
+    """
+    Load and flatten connectome matrices for unique subjects.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing subject IDs.
+        visit_name (str): Visit identifier to pass into file reader.
+        directory (str): Directory path where connectomes are stored.
+        expected_shape (tuple): Expected matrix shape (default (418, 418)).
+
+    Returns:
+        flattened (np.ndarray): Array of flattened upper-triangle connectomes.
+        subjects (list): List of subjects successfully processed.
+    """
+    connectomes = []
+    subjects = []
+
+    unique_subjects = df['Subject'].unique()
+
+    for subject in unique_subjects:
+        matrix = read_file_to_matrix(subject, visit, directory=directory)
+        if matrix is None:
+            continue
+
+        try:
+            new_matrix = convert_matrix_to_array(matrix)
+            a = np.array(new_matrix)
+
+            if a.shape != expected_shape:
+                raise ValueError(f"Matrix shape mismatch: expected {expected_shape}, got {a.shape}.")
+
+            connectomes.append(a)
+            subjects.append(subject)
+
+        except Exception as e:
+            print(f"Error processing subject {subject}: {e}")
+            continue
+
+    # Flatten upper triangle for each connectome
+    flattened = np.array([
+        conn[np.triu_indices(expected_shape[0], k=1)].flatten()
+        for conn in connectomes
+    ])
+
+    print(f"Loaded {len(subjects)} subjects")
+    print(f"Shape of flattened connectomes: {flattened.shape}")
+
+    return flattened, subjects
