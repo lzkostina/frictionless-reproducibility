@@ -1,5 +1,6 @@
+import numpy as np
 import pandas as pd
-from typing import Tuple
+from typing import Callable, List, Tuple, Optional
 
 
 def align_subjects(
@@ -63,52 +64,110 @@ def align_subjects(
     return df1_aligned, df2_aligned
 
 
-def load_connectomes(df, visit,
-                     directory="../connectomes/connectomes", expected_shape=(418, 418)):
+def load_connectomes(
+    df: pd.DataFrame,
+    visit: str,
+    directory: str = "../connectomes/connectomes",
+    expected_shape: Tuple[int, int] = (418, 418),
+    subject_col: str = "Subject",
+    reader: Optional[Callable[[str, str, str], np.ndarray]] = None,
+    converter: Optional[Callable[[object], np.ndarray]] = None,
+    verbose: bool = True,
+) -> Tuple[np.ndarray, List[str]]:
     """
     Load and flatten connectome matrices for unique subjects.
 
-    Args:
-        df (pd.DataFrame): DataFrame containing subject IDs.
-        visit_name (str): Visit identifier to pass into file reader.
-        directory (str): Directory path where connectomes are stored.
-        expected_shape (tuple): Expected matrix shape (default (418, 418)).
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing subject IDs in `subject_col`.
+    visit : str
+        Visit identifier passed to the file reader (e.g., "baseline_year_1_arm_1").
+    directory : str, optional
+        Directory where connectome files are stored.
+    expected_shape : tuple of int, optional
+        Expected matrix shape (rows, cols), default (418, 418).
+    subject_col : str, optional
+        Column name containing subject IDs, default "Subject".
+    reader : callable, optional
+        Function to read a matrix: reader(subject_id, visit, directory) -> np.ndarray-like.
+        Defaults to a function named `read_file_to_matrix` in this module's scope.
+    converter : callable, optional
+        Function to convert raw matrix to numpy array: converter(matrix) -> np.ndarray-like.
+        Defaults to a function named `convert_matrix_to_array` in this module's scope.
+    verbose : bool, optional
+        If True, prints progress and skipped subjects.
 
-    Returns:
-        flattened (np.ndarray): Array of flattened upper-triangle connectomes.
-        subjects (list): List of subjects successfully processed.
+    Returns
+    -------
+    flattened : np.ndarray
+        2D array of shape (n_subjects, n_edges) with upper-triangle values (k=1).
+    subjects : list of str
+        Subject IDs corresponding to the rows of `flattened`.
+
+    Raises
+    ------
+    ValueError
+        If no valid connectomes are loaded.
     """
-    connectomes = []
-    subjects = []
 
-    unique_subjects = df['Subject'].unique()
+    # Fallback to in-scope helpers if custom callables not supplied
+    if reader is None:
+        try:
+            reader = read_file_to_matrix  # type: ignore[name-defined]
+        except NameError:
+            raise NameError("`reader` is None and `read_file_to_matrix` is not defined in scope.")
+    if converter is None:
+        try:
+            converter = convert_matrix_to_array  # type: ignore[name-defined]
+        except NameError:
+            raise NameError("`converter` is None and `convert_matrix_to_array` is not defined in scope.")
+
+    # Collect unique subjects (deterministic order)
+    if subject_col not in df.columns:
+        raise KeyError(f"Column '{subject_col}' not found in dataframe.")
+    unique_subjects = sorted(pd.Series(df[subject_col]).dropna().astype(str).unique().tolist())
+
+    n_rows, n_cols = expected_shape
+    if n_rows != n_cols:
+        raise ValueError(f"expected_shape must be square; got {expected_shape}.")
+
+    # Precompute the indices for the upper triangle (excluding diagonal)
+    tri_idx = np.triu_indices(n_rows, k=1)
+
+    connectomes: List[np.ndarray] = []
+    subjects: List[str] = []
 
     for subject in unique_subjects:
-        matrix = read_file_to_matrix(subject, visit, directory=directory)
-        if matrix is None:
-            continue
-
         try:
-            new_matrix = convert_matrix_to_array(matrix)
-            a = np.array(new_matrix)
+            raw = reader(subject, visit, directory=directory)
+            if raw is None:
+                if verbose:
+                    print(f"[skip] No matrix for subject {subject}")
+                continue
 
-            if a.shape != expected_shape:
-                raise ValueError(f"Matrix shape mismatch: expected {expected_shape}, got {a.shape}.")
+            arr = np.asarray(converter(raw))
+            if arr.shape != expected_shape:
+                if verbose:
+                    print(f"[skip] {subject}: shape {arr.shape} != expected {expected_shape}")
+                continue
 
-            connectomes.append(a)
+            connectomes.append(arr)
             subjects.append(subject)
 
         except Exception as e:
-            print(f"Error processing subject {subject}: {e}")
+            if verbose:
+                print(f"[skip] {subject}: {e}")
             continue
 
-    # Flatten upper triangle for each connectome
-    flattened = np.array([
-        conn[np.triu_indices(expected_shape[0], k=1)].flatten()
-        for conn in connectomes
-    ])
+    if not connectomes:
+        raise ValueError("No valid connectomes were loaded (all missing or wrong shape).")
 
-    print(f"Loaded {len(subjects)} subjects")
-    print(f"Shape of flattened connectomes: {flattened.shape}")
+    # Flatten each matrix's upper triangle and stack
+    flattened = np.vstack([conn[tri_idx].ravel() for conn in connectomes])
+
+    if verbose:
+        print(f"Loaded {len(subjects)} subjects")
+        print(f"Flattened shape: {flattened.shape}  (n_subjects x n_edges)")
 
     return flattened, subjects
