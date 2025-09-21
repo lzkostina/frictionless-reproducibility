@@ -74,3 +74,41 @@ def convert_matrix_to_array(input_matrix: np.ndarray) -> np.ndarray:
 
     except Exception as e:
         raise ValueError(f"Failed to convert matrix to array: {e}")
+
+
+def vector_to_symmetric_matrix(vector, size, diag_value=0.0):
+    """
+    Convert a vector of upper-triangular values into a full symmetric matrix.
+
+    Args:
+        vector (array-like): Values for the upper triangle (excluding diagonal).
+        size (int): Dimension of the square matrix.
+        diag_value (float, optional): Value to fill the diagonal with.
+                                      Defaults to 0.0.
+
+    Returns:
+        np.ndarray: Symmetric (size x size) matrix.
+    """
+    vector = np.asarray(vector)
+
+    # Number of elements in the upper triangle (excluding diagonal)
+    triu_indices = np.triu_indices(size, k=1)
+    expected_len = len(triu_indices[0])
+
+    if vector.shape[0] != expected_len:
+        raise ValueError(
+            f"Vector length {vector.shape[0]} doesn't match expected "
+            f"length {expected_len} for size {size}"
+        )
+
+    # Create empty matrix and fill upper triangle
+    matrix = np.zeros((size, size), dtype=vector.dtype)
+    matrix[triu_indices] = vector
+
+    # Mirror to lower triangle
+    matrix = matrix + matrix.T
+
+    # Fill diagonal
+    np.fill_diagonal(matrix, diag_value)
+
+    return matrix
