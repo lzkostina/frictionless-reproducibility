@@ -28,7 +28,7 @@ frictionless-reproducibility/
 │ ├── pipeline/ # code for preprocessing, cleaning, feature creation
 │ ├── utils/ # helper functions and utilities
 │ └── analysis/ # statistical models, plots, summary analysis
-├── artifacts/ # intermediate outputs (models, stats)
+├── artifacts/ # intermediate outputs 
 ├── results/ # findings
 │ ├── tables/ # summary tables
 │ ├── figures/ # plots and visualizations
@@ -36,7 +36,9 @@ frictionless-reproducibility/
 ├── tests/ # unit and integration tests (pytest)
 ├── docs/ # additional notes or documentation
 ├── requirements.txt # Python dependencies (or environment.yml)
+├── make_artifacts.py # generate artifacts for safe mode analysis
 ├── run_analysis.py # single entry point for end-to-end run
+├── run_from_artifacts.py # save mode analysis
 ├── README.md # project overview and instructions
 └── .gitignore # specifies files to ignore in version control
 ```
