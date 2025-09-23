@@ -83,4 +83,14 @@ This will:
 * Run the statistical analysis using only demographic and behavioral features
 * Save results into:
 * Tables: results/tables/
-* Figures: results/figures/
+
+
+#### Testing
+
+This project includes basic tests to ensure pipeline correctness.
+
+To run all tests:
+```bash
+pytest tests/
+```
+
