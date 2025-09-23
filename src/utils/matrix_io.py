@@ -112,3 +112,5 @@ def vector_to_symmetric_matrix(vector, size, diag_value=0.0):
     np.fill_diagonal(matrix, diag_value)
 
     return matrix
+
+
