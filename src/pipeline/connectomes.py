@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from src.utils.matrix_io import read_file_to_matrix, convert_matrix_to_array
-from typing import Callable, List, Tuple, Optional
 
+from typing import Callable, List, Tuple, Optional
 from src.utils.matrix_io import read_file_to_matrix, convert_matrix_to_array
 
 
