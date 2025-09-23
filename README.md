@@ -84,7 +84,7 @@ This will:
 * Save results into:
 * Tables: results/tables/
 
-
+Expected outputs: baseline_no_network.csv, baseline_ses_no_network.csv, followup_no_network.csv,  followup_ses_no_network.csv
 #### Testing
 
 This project includes basic tests to ensure pipeline correctness.
