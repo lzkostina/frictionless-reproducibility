@@ -1,1 +1,27 @@
+# Environments
 venv/
+.venv/
+env/
+*.env
+
+# Python cache & build
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (large and sensitive)
+data/raw/
+data/connectomes/
+data/processed/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
