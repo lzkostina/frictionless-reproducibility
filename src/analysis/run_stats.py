@@ -9,6 +9,7 @@ import os
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 from src.features.extraction import (
     extract_article_features,
@@ -23,6 +24,8 @@ from src.evaluation.cross_validation import (
 
 RESULTS_DIR = Path("results/tables")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+FIGURES_DIR = Path("results/figures")
+FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _get_data_dir():
@@ -84,11 +87,49 @@ def run():
     # Cross-validation helper
     # -----------------------------------------------------------------
     def run_and_save(name, X, y, use_network, X_network=None):
-        results, _ = run_cross_validation(
-            X, y, use_network=use_network, X_network=X_network, num_pc=100
-        )
-        print_cross_val_results(results)
-        pd.DataFrame(results).to_csv(RESULTS_DIR / f"{name}.csv", index=False)
+        def save_barplot(results, title, filename):
+            """
+            Save a simple bar plot showing mean CV score.
+
+            Parameters
+            ----------
+            results : list or dict
+                If list: cross-validation scores
+                If dict: keys = labels, values = score lists
+            title : str
+                Plot title
+            filename : str or Path
+                Path to save the figure
+            """
+            plt.figure(figsize=(6, 4))
+
+            if isinstance(results, dict):
+                labels = list(results.keys())
+                values = [np.mean(v) for v in results.values()]
+                plt.bar(labels, values)
+            else:
+                labels = ["mean"]
+                values = [np.mean(results)]
+                plt.bar(labels, values)
+
+            plt.ylabel("Mean CV R²")
+            plt.title(title)
+            plt.tight_layout()
+            plt.savefig(FIGURES_DIR / filename)
+            plt.close()
+
+            results, _ = run_cross_validation(
+                X, y, use_network=use_network, X_network=X_network, num_pc=100
+            )
+            print_cross_val_results(results)
+
+            # Save table
+            pd.DataFrame(results).to_csv(RESULTS_DIR / f"{name}.csv", index=False)
+
+            # Save figure
+            save_barplot(results, title=f"{name} performance", filename=f"{name}.png")
+
+            return results
 
     # -----------------------------------------------------------------
     # Analyses
