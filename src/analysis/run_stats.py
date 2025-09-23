@@ -86,50 +86,58 @@ def run():
     # -----------------------------------------------------------------
     # Cross-validation helper
     # -----------------------------------------------------------------
-    def run_and_save(name, X, y, use_network, X_network=None):
-        def save_barplot(results, title, filename):
-            """
-            Save a simple bar plot showing mean CV score.
+    def save_barplot(results, title, filename, metric="r2"):
+        """
+        Save a simple bar plot showing mean CV score.
 
-            Parameters
-            ----------
-            results : list or dict
-                If list: cross-validation scores
-                If dict: keys = labels, values = score lists
-            title : str
-                Plot title
-            filename : str or Path
-                Path to save the figure
-            """
-            plt.figure(figsize=(6, 4))
+        Parameters
+        ----------
+        results : list or dict
+            If list of dicts: extract `metric` from each dict
+            If list of floats: plot directly
+            If dict: keys = labels, values = list of floats
+        title : str
+            Plot title
+        filename : str
+            File name for saved figure
+        metric : str
+            Which metric to extract if results is a list of dicts
+        """
+        plt.figure(figsize=(6, 4))
 
-            if isinstance(results, dict):
-                labels = list(results.keys())
-                values = [np.mean(v) for v in results.values()]
-                plt.bar(labels, values)
-            else:
-                labels = ["mean"]
-                values = [np.mean(results)]
-                plt.bar(labels, values)
+        if isinstance(results, dict):
+            labels = list(results.keys())
+            values = [np.mean(v) for v in results.values()]
+        elif isinstance(results, list):
+            if isinstance(results[0], dict):  # list of dicts
+                values = [r[metric] for r in results if metric in r]
+            else:  # list of floats
+                values = results
+            labels = [metric]
+            values = [np.mean(values)]
+        else:
+            labels, values = ["value"], [results]
 
-            plt.ylabel("Mean CV R²")
-            plt.title(title)
-            plt.tight_layout()
-            plt.savefig(FIGURES_DIR / filename)
-            plt.close()
+        plt.bar(labels, values)
+        plt.ylabel(f"Mean CV {metric.upper()}")
+        plt.title(title)
+        plt.tight_layout()
+        plt.savefig(FIGURES_DIR / filename)
+        plt.close()
 
-            results, _ = run_cross_validation(
-                X, y, use_network=use_network, X_network=X_network, num_pc=100
-            )
-            print_cross_val_results(results)
+    def run_and_save(name, X, y, use_network, X_network=None, metric="r2"):
+        results, _ = run_cross_validation(
+            X, y, use_network=use_network, X_network=X_network, num_pc=100
+        )
+        print_cross_val_results(results)
 
-            # Save table
-            pd.DataFrame(results).to_csv(RESULTS_DIR / f"{name}.csv", index=False)
+        # Save table
+        pd.DataFrame(results).to_csv(RESULTS_DIR / f"{name}.csv", index=False)
 
-            # Save figure
-            save_barplot(results, title=f"{name} performance", filename=f"{name}.png")
+        # Save figure
+        save_barplot(results, title=f"{name} performance", filename=f"{name}.png", metric=metric)
 
-            return results
+        return results
 
     # -----------------------------------------------------------------
     # Analyses
