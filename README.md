@@ -43,28 +43,42 @@ frictionless-reproducibility/
 
 ### Installation
 1. Clone the repository:
-
-
-    $ git clone https://github.com/lzkostina/frictionless-reproducibility
-
-    $ cd frictionless-reproducibility
+```bash
+git clone https://github.com/lzkostina/frictionless-reproducibility
+cd frictionless-reproducibility
+```
 
 2. Create environment and install dependencies:
 
-
-    $ python3 -m venv .venv
-
-    $ source .venv/bin/activate
-
-    $ pip install -r requirements.txt
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 ### Usage
-   
-    $ python3 run_analysis.py
-
+#### Running with Full Data
+If you have access to the raw dataset (not included due to size/sensitivity):
+```bash
+python run_analysis.py
+```
 
 This will:
 * Load raw data (from data/raw/)
 * Process and validate data → data/processed/
 * Run pipeline and save models → artifacts/
 * Generate final results (tables/figures/report) → results/
+
+#### Reproduce from Artifacts (safe mode, no raw data required)
+If you do not have access to the raw data, you can still reproduce the analysis using precomputed artifacts included in this repository.
+```bash
+python run_from_artifacts.py
+```
+
+This will:
+* Load safe reduced files from artifacts/version_B/
+* Skip all connectome-related steps
+* Run the statistical analysis using only demographic and behavioral features
+* Save results into:
+* Tables: results/tables/
+* Figures: results/figures/
